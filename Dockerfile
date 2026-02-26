@@ -34,6 +34,9 @@ COPY . /var/www/html
 # Install PHP dependencies (THIS CREATES vendor/)
 RUN composer install --no-dev --optimize-autoloader
 
+#Install npm dependencies
+RUN npm install && npm run build
+
 RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
