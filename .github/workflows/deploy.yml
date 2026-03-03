@@ -3,7 +3,7 @@ name: Deploy COTHRM
 on:
   push:
     branches:
-      - main
+      - 9-add-stage-and-prod-instances
  
 jobs:
   deploy:
