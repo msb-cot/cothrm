@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  
+  main:
+    image: cothrm-main
+    container_name: cothrm-main
+    ports:
+      - "81:80"
+    volumes:
+      - ./main:/var/www/html
+    restart: always
