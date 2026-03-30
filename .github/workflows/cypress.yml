@@ -1,7 +1,9 @@
 name: Cypress
 
-on: [ push, pull_request ]
-
+on:
+  push:
+    branches:
+      - feature/docker-deployment
 jobs:
   cypress:
     runs-on: ubuntu-latest
