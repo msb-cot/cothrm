@@ -1,9 +1,11 @@
 name: Cypress
 
 on:
-  push:
-    branches:
-      - feature/docker-deployment
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter tag version (e.g., v1.2)'
+        required: true
 jobs:
   cypress:
     runs-on: ubuntu-latest
