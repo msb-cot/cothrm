@@ -1,12 +1,11 @@
 name: Docker Build Test
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    paths:
-      - '.github/workflows/docker_build.yml'
-      - 'Dockerfile'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter tag version (e.g., v1.2)'
+        required: true
 
 jobs:
   build:
