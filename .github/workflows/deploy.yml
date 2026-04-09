@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'v1.0.0'
+        description: 'Enter tag (e.g., v1.0.0)'
         required: true
 
 jobs:
@@ -27,16 +27,22 @@ jobs:
       - name: Deploy to VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << EOF
+            set -e
             cd /var/www/html/cothrm
 
-            # Fetch all tags
+            echo "Deploying version: ${{ github.event.inputs.version }}"
+
+            # Fetch latest tags
             git fetch --all --tags
 
-            # Checkout the selected version
+            # Reset any local changes (important)
+            git reset --hard
+
+            # Checkout exact tag
             git checkout ${{ github.event.inputs.version }}
 
-            # Pull latest for safety
-            git pull origin ${{ github.event.inputs.version }} || true
+            # Clean untracked files (optional but recommended)
+            git clean -fd
 
             # Restart containers
             docker compose down
