@@ -1,12 +1,21 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  
-  main:
-    image: cothrm-main
+
+  cothrm-main:
+    build: .
     container_name: cothrm-main
-    ports:
-      - "81:80"
-    volumes:
-      - ./main:/var/www/html
     restart: always
+    ports: 
+      - "85:80"
+    networks:
+      - cothrm-network
+    environment:
+      DB_HOST: 74.225.227.208
+      DB_PORT: 3306
+      DB_NAME: cothrm_stage
+      DB_USER: orangeuser
+      DB_PASSWORD: StrongPassword@123
+
+networks:
+  cothrm-network:
