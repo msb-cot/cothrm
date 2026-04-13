@@ -1,7 +1,11 @@
 name: Cypress
 
-on: [ push, pull_request ]
-
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter tag version (e.g., v1.2)'
+        required: true
 jobs:
   cypress:
     runs-on: ubuntu-latest

@@ -1,0 +1,50 @@
+name: Deploy COTHRM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter tag version(e.g., v1.0.0)'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code by tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VM
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            set -e
+            cd /var/www/html/cothrm
+
+            echo "Deploying version: ${{ github.event.inputs.version }}"
+
+            # Fetch latest tags
+            git fetch --all --tags
+
+            # Reset any local changes (important)
+            git reset --hard
+
+            # Checkout exact tag
+            git checkout ${{ github.event.inputs.version }}
+
+            # Clean untracked files (optional but recommended)
+            git clean -fd
+
+            # Restart containers
+            docker compose down
+            docker compose up -d --build
+          EOF
