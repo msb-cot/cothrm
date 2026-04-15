@@ -41,6 +41,9 @@ jobs:
             # Checkout exact tag
             git checkout ${{ github.event.inputs.version }}
 
+            # Force update to remote tag
+            git pull origin ${{ github.event.inputs.version }} || true
+
             # Clean untracked files (optional but recommended)
             git clean -fd
 
