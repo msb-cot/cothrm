@@ -13,7 +13,7 @@ services:
     environment:
       DB_HOST: 74.225.227.208
       DB_PORT: 3306
-      DB_NAME: cothrm_stage
+      DB_NAME: orangehrm
       DB_USER: orangeuser
       DB_PASSWORD: StrongPassword@123
 
