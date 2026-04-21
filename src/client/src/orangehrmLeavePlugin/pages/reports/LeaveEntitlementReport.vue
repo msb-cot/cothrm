@@ -226,10 +226,58 @@ export default {
       }
     });
 
+<<<<<<< Updated upstream
     return {
       rules,
       filters,
       serializedFilters,
+=======
+    const downloadExcel = async () => {
+       try {
+        const params = new URLSearchParams(serializedFilters.value).toString();
+
+        // const baseUrl = window.location.origin;
+        const path = window.location.pathname;
+
+        const urlBase =
+          window.location.origin +
+          window.location.pathname.split('/web')[0] +
+          '/web/index.php';
+
+        let url = '';
+
+        if (filters.value.type === 'leave_type_leave_entitlements_and_usage') {
+          url = `${urlBase}/leave/reports/leave-type-entitlement-usage/excel?${params}`;
+        } else {
+          url = `${urlBase}/leave/entitlement/excel?${params}`;
+        }
+
+        console.log('FINAL URL:', url); 
+
+        const response = await fetch(url, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to download Excel');
+        }
+
+        const blob = await response.blob();
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'leave_entitlement_usage.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        console.error('Download error:', error);
+        alert('Excel download failed.');
+      }
+>>>>>>> Stashed changes
     };
   },
 };
