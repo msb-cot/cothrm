@@ -129,14 +129,22 @@ class EmployeeLeaveEntitlementUsageReport implements EndpointAwareReport
     public function prepareFilterParams(EndpointProxy $endpoint): FilterParams
     {
         $filterParams = new EmployeeLeaveEntitlementUsageReportSearchFilterParams();
+        
+        $empNumber = null;
 
-        $filterParams->setEmpNumber(
-            $endpoint->getRequestParams()->getInt(
-                RequestParams::PARAM_TYPE_QUERY,
-                CommonParams::PARAMETER_EMP_NUMBER,
-                $this->getAuthUser()->getEmpNumber()
+        if (
+            $endpoint->getRequestParams()->has(
+            RequestParams::PARAM_TYPE_QUERY,
+            CommonParams::PARAMETER_EMP_NUMBER
             )
-        );
+        ) {
+            $empNumber = $endpoint->getRequestParams()->getInt(
+            RequestParams::PARAM_TYPE_QUERY,
+            CommonParams::PARAMETER_EMP_NUMBER
+           );
+        }
+
+        $filterParams->setEmpNumber($empNumber);
 
         $endpoint->setSortingAndPaginationParams($filterParams);
 
@@ -201,7 +209,7 @@ class EmployeeLeaveEntitlementUsageReport implements EndpointAwareReport
     public function getValidationRule(EndpointProxy $endpoint): ParamRuleCollection
     {
         return new ParamRuleCollection(
-            $endpoint->getValidationDecorator()->requiredParamRule(
+            $endpoint->getValidationDecorator()->notRequiredParamRule(
                 new ParamRule(
                     CommonParams::PARAMETER_EMP_NUMBER,
                     new Rule(Rules::IN_ACCESSIBLE_EMP_NUMBERS)

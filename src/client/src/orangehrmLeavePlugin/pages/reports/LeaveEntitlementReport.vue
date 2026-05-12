@@ -116,7 +116,6 @@
                   v-model="filters.employee"
                   :rules="rules.employee"
                   :params="{includeEmployees: 'currentAndPast'}"
-                  required
                 />
               </oxd-grid-item>
 
@@ -224,7 +223,7 @@ export default {
     });
 
     const rules = ref({
-      employee: [required, shouldNotExceedCharLength(100), validSelection],
+      employee: [shouldNotExceedCharLength(100), validSelection],
       leavePeriod: [required],
       leaveType: [required],
     });
@@ -254,22 +253,38 @@ export default {
         };
       }
     });
+    const downloadExcel = () => {
+      try {
+        const params = new URLSearchParams(serializedFilters.value).toString();
 
-    const downloadExcel = async () => {
-      const params = new URLSearchParams(serializedFilters.value).toString();
-      const response = await fetch(
-        `/cothrm/web/index.php/leave/entitlement/excel?${params}`,
-        {credentials: 'include'},
-      );
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'leave_entitlement_usage.xlsx';
-      a.click();
+        const baseUrl =
+          window.location.origin +
+          window.location.pathname.split('/web')[0] +
+          '/web/index.php';
+
+        let url = '';
+
+        if (filters.value.type === 'leave_type_leave_entitlements_and_usage') {
+          url = `${baseUrl}/leave/reports/leave-type-entitlement-usage/excel?${params}`;
+        } else {
+          url = `${baseUrl}/leave/entitlement/excel?${params}`;
+        }
+
+        console.log('DOWNLOAD URL:', url);
+
+        // ✅ BEST: Direct browser download (no fetch)
+        window.open(url, '_blank');
+      } catch (error) {
+        console.error('Download error:', error);
+        alert('Excel download failed.');
+      }
     };
-
-    return {rules, filters, serializedFilters, downloadExcel};
+    return {
+      rules,
+      filters,
+      serializedFilters,
+      downloadExcel,
+    };
   },
 };
 </script>
