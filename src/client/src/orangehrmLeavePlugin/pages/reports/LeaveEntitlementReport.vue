@@ -116,7 +116,6 @@
                   v-model="filters.employee"
                   :rules="rules.employee"
                   :params="{includeEmployees: 'currentAndPast'}"
-                  required
                 />
               </oxd-grid-item>
 
@@ -224,7 +223,7 @@ export default {
     });
 
     const rules = ref({
-      employee: [required, shouldNotExceedCharLength(100), validSelection],
+      employee: [shouldNotExceedCharLength(100), validSelection],
       leavePeriod: [required],
       leaveType: [required],
     });
@@ -254,15 +253,11 @@ export default {
         };
       }
     });
-
-    const downloadExcel = async () => {
-       try {
+    const downloadExcel = () => {
+      try {
         const params = new URLSearchParams(serializedFilters.value).toString();
 
-        // const baseUrl = window.location.origin;
-        const path = window.location.pathname;
-
-        const urlBase =
+        const baseUrl =
           window.location.origin +
           window.location.pathname.split('/web')[0] +
           '/web/index.php';
@@ -270,40 +265,26 @@ export default {
         let url = '';
 
         if (filters.value.type === 'leave_type_leave_entitlements_and_usage') {
-          url = `${urlBase}/leave/reports/leave-type-entitlement-usage/excel?${params}`;
+          url = `${baseUrl}/leave/reports/leave-type-entitlement-usage/excel?${params}`;
         } else {
-          url = `${urlBase}/leave/entitlement/excel?${params}`;
+          url = `${baseUrl}/leave/entitlement/excel?${params}`;
         }
 
-        console.log('FINAL URL:', url); 
+        console.log('DOWNLOAD URL:', url);
 
-        const response = await fetch(url, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to download Excel');
-        }
-
-        const blob = await response.blob();
-
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = 'leave_entitlement_usage.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-
-        window.URL.revokeObjectURL(downloadUrl);
+        // ✅ BEST: Direct browser download (no fetch)
+        window.open(url, '_blank');
       } catch (error) {
         console.error('Download error:', error);
         alert('Excel download failed.');
       }
-      
-=======
-   
-    return {rules, filters, serializedFilters, downloadExcel};
+    };
+    return {
+      rules,
+      filters,
+      serializedFilters,
+      downloadExcel,
+    };
   },
 };
 </script>

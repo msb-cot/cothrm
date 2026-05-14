@@ -11,68 +11,67 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use OrangeHRM\Leave\Report\EmployeeLeaveEntitlementUsageReport;
 use OrangeHRM\Leave\Dto\EmployeeLeaveEntitlementUsageReportSearchFilterParams;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
- 
+
 class LeaveEntitlementExcelController extends AbstractController
 {
     public function execute(Request $request)
     {
-        // 1️⃣ Build filter DTO
+        // ✅ Performance tuning (important for Azure)
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        // 1️⃣ Build filters
         $filterParams = new EmployeeLeaveEntitlementUsageReportSearchFilterParams();
- 
-        $filterParams->setEmpNumber(
-            $request->query->getInt('empNumber')
-        );
- 
-        $fromDate = $request->query->get('fromDate');
-        $toDate = $request->query->get('toDate');
- 
-        if ($fromDate) {
-            $filterParams->setFromDate(new \DateTime($fromDate));
+
+        if ($request->query->get('empNumber')) {
+            $filterParams->setEmpNumber($request->query->getInt('empNumber'));
         }
- 
-        if ($toDate) {
-            $filterParams->setToDate(new \DateTime($toDate));
+
+        if ($request->query->get('fromDate')) {
+            $filterParams->setFromDate(new \DateTime($request->query->get('fromDate')));
         }
- 
+
+        if ($request->query->get('toDate')) {
+            $filterParams->setToDate(new \DateTime($request->query->get('toDate')));
+        }
+
         if ($request->query->get('leaveTypeId')) {
-            $filterParams->setLeaveTypeId(
-                $request->query->getInt('leaveTypeId')
-            );
+            $filterParams->setLeaveTypeId($request->query->getInt('leaveTypeId'));
         }
- 
-        // 2️⃣ Get report data
+
+        // 2️⃣ Fetch data
         $report = new EmployeeLeaveEntitlementUsageReport();
-        $reportDataObject = $report->getData($filterParams);
- 
-        // 3️⃣ Normalize data
-        $rows = $reportDataObject->normalize();
- 
-        // ✅ Handle empty data safely
-        if (empty($rows)) {
-            $rows = [['No Records Found']];
+        $data = $report->getData($filterParams)->normalize();
+
+        if (empty($data)) {
+            $data = [['No Records Found']];
         }
- 
-        // 4️⃣ Create Excel
+
+        // 3️⃣ Create spreadsheet
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
- 
-        // 5️⃣ Add logo (Azure-safe path)
-        $drawing = new Drawing();
-        $drawing->setName('Company Logo');
-        $drawing->setDescription('Company Logo');
- 
-        $logoPath = $_SERVER['DOCUMENT_ROOT'] . '/images/logo.png';
- 
+
+        // 4️⃣ Add Logo (Azure-safe path)
+        $logoPath = dirname(__DIR__, 4) . '/web/images/logo.png';
+
         if (file_exists($logoPath)) {
+            $drawing = new Drawing();
             $drawing->setPath($logoPath);
             $drawing->setHeight(60);
             $drawing->setCoordinates('A1');
             $drawing->setWorksheet($sheet);
         }
- 
+
+        // 5️⃣ Title
+        $sheet->mergeCells('A8:I8');
+        $sheet->setCellValue('A8', 'Employee Leave Report');
+
+        $sheet->getStyle('A8')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A8')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
         // 6️⃣ Headers
         $headers = [
             'Employee Name',
@@ -85,71 +84,68 @@ class LeaveEntitlementExcelController extends AbstractController
             'Taken Days',
             'Balance Days'
         ];
- 
-        // Title
-        $sheet->mergeCells('A8:I8');
-        $sheet->setCellValue('A8', 'Employee Leave Report');
- 
-        $sheet->getStyle('A8')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A8')->getAlignment()
-            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
- 
-        // Header row
+
         $sheet->fromArray($headers, null, 'A10');
+
         $headerRange = 'A10:I10';
- 
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFont()
-            ->getColor()->setARGB(Color::COLOR_WHITE);
- 
-        $sheet->getStyle($headerRange)->getAlignment()
-            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-            ->setVertical(Alignment::VERTICAL_CENTER);
- 
-        $sheet->getStyle($headerRange)->getFill()
-            ->setFillType(Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FF0355A7');
- 
-        $sheet->getStyle($headerRange)->getBorders()
-            ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
- 
-        // Data
-        $sheet->fromArray($rows, null, 'A11');
- 
-        // Auto-size columns
+
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['argb' => Color::COLOR_WHITE],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF0355A7'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                ],
+            ],
+        ]);
+
+        // 7️⃣ Data
+        $sheet->fromArray($data, null, 'A11');
+
+        // 8️⃣ Auto-size columns
         foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
- 
-        // OPTIONAL: hide columns (comment if issues)
+
+        // ❌ DO NOT hide columns in production (causes confusion)
+         // OPTIONAL: hide columns (comment if issues)
          foreach (range('E', 'I') as $col) {
              $sheet->getColumnDimension($col)->setVisible(false);
          }
- 
-        // ✅ IMPORTANT: Clear output buffer (prevents corruption)
-        if (ob_get_length()) {
+
+        // 9️⃣ Clean ALL output buffers (critical)
+        while (ob_get_level()) {
             ob_end_clean();
         }
- 
-        // 7️⃣ Stream Excel (Azure + Docker safe)
+
+        // 🔟 Stream response
         $response = new StreamedResponse(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
         });
- 
-        $response->headers->set(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
- 
-        $response->headers->set(
-            'Content-Disposition',
-            'attachment; filename="leave_entitlement_usage.xlsx"'
-        );
- 
-        $response->headers->set('Cache-Control', 'max-age=0');
+
+        $fileName = 'leave_entitlement_usage_' . date('Ymd_His') . '.xlsx';
+
+        $response->headers->set('Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        $response->headers->set('Content-Disposition',
+            "attachment; filename=\"$fileName\"; filename*=UTF-8''$fileName");
+
+        $response->headers->set('Cache-Control', 'max-age=0, must-revalidate');
         $response->headers->set('Pragma', 'public');
- 
+        $response->headers->set('Expires', '0');
+
         return $response;
     }
 }
